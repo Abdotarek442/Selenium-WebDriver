@@ -51,15 +51,19 @@ public class CheckoutPage extends BasePage {
     // ---- Step 1 ----
 
     public void selectNewBillingAddress() {
-        if (isPresent(newAddressRadio)) {
-            click(newAddressRadio);
-        }
-        waitVisible(bFirstName);
+        // Wait for the step to load and find the radio button
+        wait.until(ExpectedConditions.visibilityOfElementLocated(newAddressRadio));
+
+        // Explicitly click 'New Address' to show the hidden form
+        click(newAddressRadio);
+
+        // Wait until the 'First Name' field is actually visible before typing
+        wait.until(ExpectedConditions.visibilityOfElementLocated(bFirstName));
     }
 
     public void fillBillingDetails(String fn, String ln, String company,
-            String addr1, String city, String postcode,
-            String country, String region) {
+                                   String addr1, String city, String postcode,
+                                   String country, String region) {
         type(bFirstName, fn);
         type(bLastName, ln);
         if (!company.isEmpty()) type(bCompany, company);
@@ -67,7 +71,9 @@ public class CheckoutPage extends BasePage {
         type(bCity, city);
         type(bPostcode, postcode);
         selectByVisibleText(bCountry, country);
-        waitForRegionOptions();
+        wait.until(ExpectedConditions.presenceOfElementLocated(
+                By.xpath("//select[@id='input-payment-zone']/option[text()='" + region + "']")));
+
         selectByVisibleText(bRegion, region);
     }
 
@@ -82,8 +88,8 @@ public class CheckoutPage extends BasePage {
     public void clickBillingContinue() {
         scrollIntoView(billingContinue);
         click(billingContinue);
-        // Wait for the shipping section accordion to open
-        waitVisible(shippingContinue);
+        // Explicitly wait for the next section's button to be CLICKABLE, not just visible
+        wait.until(ExpectedConditions.elementToBeClickable(shippingContinue));
     }
 
     public String getSelectedBillingAddressText() {

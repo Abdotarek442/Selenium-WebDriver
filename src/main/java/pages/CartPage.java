@@ -13,14 +13,16 @@ public class CartPage extends BasePage {
 
     // ------------------------------------------------------------------ mini-cart
     // header button
-    private final By cartButton        = By.id("cart");
-    // OpenCart renders item count inside the cart button as: <span class="hidden-xs ...">1 item(s)</span>
-    private final By cartBadge         = By.cssSelector("#cart button span");
+    private final By cartButton = By.id("cart");
+    // OpenCart renders item count inside the cart button as: <span class="hidden-xs
+    // ...">1 item(s)</span>
+    private final By cartBadge = By.cssSelector("#cart button span");
     // The Bootstrap dropdown menu that opens when the cart button is clicked
-    private final By miniCartDropdown  = By.cssSelector("#cart ul.dropdown-menu");
-    private final By miniCartNames     = By.cssSelector("#cart ul.dropdown-menu li table td.text-left a");
-    private final By miniCartPrices    = By.cssSelector("#cart ul.dropdown-menu li table td.text-right");
-    private final By viewCartLink      = By.cssSelector("#cart ul.dropdown-menu li:last-child a[href*='route=checkout/cart']");
+    private final By miniCartDropdown = By.cssSelector("#cart ul.dropdown-menu");
+    private final By miniCartNames = By.cssSelector("#cart ul.dropdown-menu li table td.text-left a");
+    private final By miniCartPrices = By.cssSelector("#cart ul.dropdown-menu li table td.text-right");
+    private final By viewCartLink = By
+            .cssSelector("#cart ul.dropdown-menu li:last-child a[href*='route=checkout/cart']");
 
     // ------------------------------------------------------------------ full cart
     // page selectors
@@ -92,8 +94,10 @@ public class CartPage extends BasePage {
         wait.until(ExpectedConditions.visibilityOfElementLocated(miniCartDropdown));
     }
 
-    /** Number shown in the cart button span, e.g. "1 item(s)" → 1.
-     *  Waits for the AJAX update to change the count away from 0. */
+    /**
+     * Number shown in the cart button span, e.g. "1 item(s)" → 1.
+     * Waits for the AJAX update to change the count away from 0.
+     */
     public int getMiniCartBadgeCount() {
         try {
             wait.until(ExpectedConditions.textMatches(cartBadge, java.util.regex.Pattern.compile(".*[1-9].*")));
@@ -109,7 +113,8 @@ public class CartPage extends BasePage {
         openMiniCartDropdown();
         wait.until(ExpectedConditions.visibilityOfElementLocated(miniCartNames));
         List<String> names = new ArrayList<>();
-        for (WebElement el : findAll(miniCartNames)) names.add(el.getText().trim());
+        for (WebElement el : findAll(miniCartNames))
+            names.add(el.getText().trim());
         return names;
     }
 
@@ -117,7 +122,8 @@ public class CartPage extends BasePage {
     public List<String> getMiniCartItemPrices() {
         openMiniCartDropdown();
         List<String> prices = new ArrayList<>();
-        for (WebElement el : findAll(miniCartPrices)) prices.add(el.getText().trim());
+        for (WebElement el : findAll(miniCartPrices))
+            prices.add(el.getText().trim());
         return prices;
     }
 
@@ -220,10 +226,14 @@ public class CartPage extends BasePage {
     public void clearCart() {
         goToViewCart();
         By removeBtn = By.cssSelector("button[onclick*='cart.remove']");
-        while (!findAll(removeBtn).isEmpty()) {
-            int countBefore = findAll(removeBtn).size();
-            click(removeBtn);
+
+        List<WebElement> buttons = driver.findElements(removeBtn);
+        while (!buttons.isEmpty()) {
+            ((org.openqa.selenium.JavascriptExecutor) driver)
+                    .executeScript("arguments[0].click();", buttons.get(0));
+            int countBefore = buttons.size();
             wait.until(d -> d.findElements(removeBtn).size() < countBefore);
+            buttons = driver.findElements(removeBtn);
         }
     }
 }
