@@ -11,52 +11,107 @@ import pages.LoginPage;
 import pages.ProductPage;
 import utils.ConfigReader;
 
+import java.util.List;
+
 public class CartTests extends BaseTest {
 
-    @Test(description = "TC10 - Add items to cart and verify mini-cart")
+    private static final String DELIVERY_DATE = "2026-12-31";
+
+    // ------------------TC10 – Full two-product cart scenario-----------------------------------------------------
+    @Test(description = "TC10 - Add Tablet + Laptop (with delivery date) and verify cart total")
     @Severity(SeverityLevel.CRITICAL)
     @Description("Login → add Samsung Galaxy Tab 10.1 from Tablets → " +
             "add HP LP3065 from Laptops with a delivery date → verify both " +
             "items are listed in the mini-cart with the correct total.")
-    public void addItemsToCartAndVerify() {
+
+    public void addItemsToCartAndVerifyTotal() {
+
         loginWithDefaultUser();
 
         // 1) Add Samsung Galaxy Tab 10.1 from Tablets
         CategoryPage tablets = home.openTablets();
-        boolean tabAdded = tablets.addProductByName("Samsung Galaxy Tab 10.1");
-        Assert.assertTrue(tabAdded, "Samsung Galaxy Tab 10.1 should exist in Tablets.");
+        boolean tabletAdded = tablets.addProductByName("Samsung Galaxy Tab 10.1");
+        Assert.assertTrue(tabletAdded,
+                "Samsung Galaxy Tab 10.1 should be present on the Tablets page.");
+
         Assert.assertTrue(tablets.isSuccessAlertVisible(),
-                "Success message should appear after adding the tablet.");
-        Assert.assertTrue(tablets.getSuccessAlertText()
-                        .contains("Samsung Galaxy Tab 10.1"),
-                "Success alert should reference the added product.");
+                "A success alert should appear after adding the tablet.");
+
+        String tabletAlert = tablets.getSuccessAlertText();
+        Assert.assertTrue(tabletAlert.contains("Samsung Galaxy Tab 10.1"),
+                "Success alert must mention 'Samsung Galaxy Tab 10.1'. Actual: " + tabletAlert);
+
+
+        CartPage cart = new CartPage(driver);
+        cart.goToViewCart();
+
+        List<String> namesAfterTablet = cart.getCartProductNames();
+        Assert.assertTrue(
+                namesAfterTablet.stream()
+                        .anyMatch(n -> n.toLowerCase().contains("samsung galaxy tab 10.1")),
+                "Cart should contain 'Samsung Galaxy Tab 10.1'. Found: " + namesAfterTablet);
+
+        List<String> pricesAfterTablet = cart.getCartUnitPrices();
+        Assert.assertFalse(pricesAfterTablet.isEmpty(),
+                "Unit price(s) should be shown in the cart.");
+
+        String tabletPrice = pricesAfterTablet.stream()
+                .filter(p -> !p.isEmpty())
+                .findFirst()
+                .orElse("");
+        System.out.println("[INFO] Tablet unit price in cart: " + tabletPrice);
+
 
         // 2) Open HP LP3065 product page (so we can set the delivery date)
         CategoryPage laptops = home.openLaptopsShowAll();
         ProductPage hp = laptops.openProductByName("HP LP3065");
-        hp.setDeliveryDate("2026-12-31");
+
+        Assert.assertTrue(hp.getTitle().contains("HP LP3065"),
+                "Product page title should contain 'HP LP3065'. Actual: " + hp.getTitle());
+
+        String hpPrice = hp.getPrice();
+        System.out.println("[INFO] HP LP3065 price on product page: " + hpPrice);
+
+        hp.setDeliveryDate(DELIVERY_DATE);
         hp.addToCart();
+
         Assert.assertTrue(hp.isSuccessAlertVisible(),
-                "Success message should appear after adding HP LP3065.");
+                "A success alert should appear after adding HP LP3065.");
+        String hpAlert = hp.getSuccessAlertText();
+        Assert.assertTrue(hpAlert.contains("HP LP3065"),
+                "Success alert must mention 'HP LP3065'. Actual: " + hpAlert);
 
-        // 3) Open mini-cart and verify it has at least 2 rows
-        CartPage cart = new CartPage(driver);
-        Assert.assertTrue(cart.getMiniCartItems().size() >= 2,
-                "Mini-cart should contain at least 2 product rows.");
-
-        // 4) Open the full cart and confirm the same
         cart.goToViewCart();
-        Assert.assertTrue(cart.getCartItemCount() >= 2,
-                "Full cart page should show at least 2 product rows.");
-        Assert.assertNotNull(cart.getCartTotal(),
-                "Cart total should be displayed.");
+
+        List<String> namesAfterBoth = cart.getCartProductNames();
+        Assert.assertTrue(
+                namesAfterBoth.stream()
+                        .anyMatch(n -> n.toLowerCase().contains("hp lp3065")),
+                "Cart should contain 'HP LP3065'. Found: " + namesAfterBoth);
+
+        String deliveryDateInCart = cart.getDeliveryDateForProduct("HP LP3065");
+        Assert.assertFalse(deliveryDateInCart.isEmpty(),
+                "HP LP3065 row in cart should show a 'Delivery Date' option.");
+        Assert.assertTrue(deliveryDateInCart.contains(DELIVERY_DATE),
+                "Delivery date in cart should be '" + DELIVERY_DATE
+                        + "'. Actual: " + deliveryDateInCart);
+        System.out.println("[INFO] Delivery date shown in cart: " + deliveryDateInCart);
+
+        String grandTotal = cart.getCartTotal();
+        Assert.assertNotNull(grandTotal,
+                "Grand Total should be displayed in the cart.");
+        Assert.assertFalse(grandTotal.isEmpty(),
+                "Grand Total text should not be empty.");
+        System.out.println("[INFO] Cart Grand Total: " + grandTotal);
+
+        Assert.assertTrue(grandTotal.startsWith("$"),
+                "Grand Total should be a dollar amount. Actual: " + grandTotal);
 
         home.logout();
     }
-
     private void loginWithDefaultUser() {
         LoginPage login = home.goToLogin();
         login.login(ConfigReader.get("valid.email"),
-                    ConfigReader.get("valid.password"));
+                ConfigReader.get("valid.password"));
     }
 }

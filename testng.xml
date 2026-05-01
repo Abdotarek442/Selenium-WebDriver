@@ -8,10 +8,15 @@
 
     <test name="All Test Cases">
         <classes>
-            <class name="tests.RegistrationTests"/>
-            <class name="tests.LoginTests"/>
-            <class name="tests.CurrencyAndNavigationTests"/>
-            <class name="tests.SortAndSearchTests"/>
+            <class name="tests.ValidRegistrationTests"/>
+            <class name="tests.InValidRegistrationTests"/>
+            <class name="tests.ValidLoginTests"/>
+            <class name="tests.InvalidLoginTests"/>
+            <class name="tests.NavigationTests"/>
+            <class name="tests.SearchSubcategoriesTests"/>
+            <class name="tests.SearchByNameTests"/>
+            <class name="tests.ChangeCurrencyTest"/>
+            <class name="tests.SortTests"/>
             <class name="tests.CartTests"/>
             <class name="tests.CheckoutTests"/>
         </classes>

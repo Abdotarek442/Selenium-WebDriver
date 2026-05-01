@@ -9,34 +9,7 @@ import pages.CategoryPage;
 import pages.LoginPage;
 import utils.ConfigReader;
 
-import java.util.List;
-
-public class CurrencyAndNavigationTests extends BaseTest {
-
-    // ------------------ TC05: Change currency ----------------------------
-    @Test(description = "TC05 - Change currency from $ to € on Desktops")
-    @Severity(SeverityLevel.NORMAL)
-    @Description("Login → open all Desktops → switch currency to € → " +
-            "all displayed prices should start with the € symbol.")
-    public void changeCurrencyToEuro() {
-        loginWithDefaultUser();
-
-        CategoryPage desktops = home.openDesktopsShowAll();
-
-        // Verify default ($) prices first
-        List<String> dollarPrices = desktops.getProductPrices();
-        Assert.assertFalse(dollarPrices.isEmpty(), "No products listed on Desktops.");
-        Assert.assertTrue(dollarPrices.get(0).contains("$"),
-                "Prices should default to $.");
-
-        // Switch to Euro
-        home.changeCurrencyToEuro();
-        List<String> euroPrices = desktops.getProductPrices();
-        Assert.assertTrue(euroPrices.stream().allMatch(p -> p.contains("€")),
-                "All prices should be in € after switching currency.");
-
-        home.logout();
-    }
+public class NavigationTests extends BaseTest {
 
     // -------- TC06: Breadcrumb & left side menu on Tablets --------------
     @Test(description = "TC06 - Breadcrumb and side-menu on Tablets")

@@ -10,7 +10,7 @@ import java.util.stream.Collectors;
 public class SearchResultsPage extends BasePage {
 
     private final By keywordInput        = By.id("input-search");
-    private final By categorySelect      = By.id("input-category");
+    private final By categorySelect      = By.cssSelector("select[name='category_id']");
     private final By subCategoriesCheckbox =
             By.cssSelector("input[name='sub_category']");
     private final By searchInDescriptions =
@@ -35,6 +35,7 @@ public class SearchResultsPage extends BasePage {
     }
 
     public void enableSubCategories() {
+        scrollIntoView(subCategoriesCheckbox);
         WebElement cb = waitVisible(subCategoriesCheckbox);
         if (!cb.isSelected()) cb.click();
     }

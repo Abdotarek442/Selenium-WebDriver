@@ -16,7 +16,7 @@ public class CategoryPage extends BasePage {
     private final By breadcrumbActive =
             By.cssSelector("ul.breadcrumb li:last-child");
     private final By sidebarHighlighted =
-            By.cssSelector("#column-left a strong");
+            By.cssSelector("#column-left a.active");
     private final By sortBySelect = By.id("input-sort");
 
     private final By productNames =
@@ -37,7 +37,8 @@ public class CategoryPage extends BasePage {
     }
 
     public String getHighlightedSidebar() {
-        return getText(sidebarHighlighted);
+        // Text includes product count e.g. "Tablets (1)" — strip the parenthetical
+        return getText(sidebarHighlighted).replaceAll("\\s*\\(.*?\\)", "").trim();
     }
 
     public void sortByNameAsc() {

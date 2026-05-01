@@ -1,6 +1,7 @@
 package pages;
 
 import org.openqa.selenium.By;
+import org.openqa.selenium.JavascriptExecutor;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
 import org.openqa.selenium.support.ui.ExpectedConditions;
@@ -59,7 +60,13 @@ public class BasePage {
         return !driver.findElements(locator).isEmpty();
     }
 
+    protected void scrollIntoView(By locator) {
+        WebElement el = wait.until(ExpectedConditions.presenceOfElementLocated(locator));
+        ((JavascriptExecutor) driver).executeScript("arguments[0].scrollIntoView(true);", el);
+    }
+
     protected void selectByVisibleText(By locator, String text) {
+        scrollIntoView(locator);
         new Select(waitVisible(locator)).selectByVisibleText(text);
     }
 
