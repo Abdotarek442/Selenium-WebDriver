@@ -125,6 +125,24 @@ public class HomePage extends BasePage {
         return new SearchResultsPage(driver);
     }
 
+    public CategoryPage openCategoryByName(String categoryName) {
+        click(By.linkText(categoryName));
+        return new CategoryPage(driver);
+    }
+
+    public CategoryPage openCategoryShowAll(String keyword) {
+        navigateViaSubmenuLink(keyword);
+        return new CategoryPage(driver);
+    }
+
+    public void changeCurrency(String currencyCode) {
+        click(currencyToggle);
+        By option = By.name(currencyCode);
+        new WebDriverWait(driver, Duration.ofSeconds(10))
+                .until(ExpectedConditions.visibilityOfElementLocated(option));
+        click(option);
+    }
+
     private void navigateViaSubmenuLink(String keyword) {
         // .see-all links are always in the DOM; CSS just hides them until hover.
         // Normalise all whitespace before comparing so "Show AllDesktops" still

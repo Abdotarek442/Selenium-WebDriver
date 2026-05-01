@@ -2,61 +2,58 @@ package pages;
 
 import org.openqa.selenium.By;
 import org.openqa.selenium.WebDriver;
+import org.openqa.selenium.WebElement;
+import org.openqa.selenium.support.ui.ExpectedConditions;
+import org.openqa.selenium.support.ui.Select;
 
-/**
- * Handles the checkout flow on the demo site.
- * The flow has these accordion sections:
- * 1. Billing details
- * 2. Delivery details
- * 3. Delivery method
- * 4. Payment method
- * 5. Confirm order
- */
+import java.util.List;
+
 public class CheckoutPage extends BasePage {
 
-    // ----- Step 1: Billing details (new address) -----
-    private final By newAddressRadio = By.cssSelector("input[name='payment_address'][value='new']");
-    private final By bFirstName = By.id("input-payment-firstname");
-    private final By bLastName = By.id("input-payment-lastname");
-    private final By bCompany = By.id("input-payment-company");
-    private final By bAddress1 = By.id("input-payment-address-1");
-    private final By bCity = By.id("input-payment-city");
-    private final By bPostcode = By.id("input-payment-postcode");
-    private final By bCountry = By.id("input-payment-country");
-    private final By bRegion = By.id("input-payment-zone");
-    private final By billingContinue = By.id("button-payment-address");
+    // ----- Step 1: Billing details -----
+    private final By newAddressRadio    = By.cssSelector("input[name='payment_address'][value='new']");
+    private final By bFirstName         = By.id("input-payment-firstname");
+    private final By bLastName          = By.id("input-payment-lastname");
+    private final By bCompany           = By.id("input-payment-company");
+    private final By bAddress1          = By.id("input-payment-address-1");
+    private final By bCity              = By.id("input-payment-city");
+    private final By bPostcode          = By.id("input-payment-postcode");
+    private final By bCountry           = By.id("input-payment-country");
+    private final By bRegion            = By.id("input-payment-zone");
+    private final By billingContinue    = By.id("button-payment-address");
     private final By billingAddressDropdown = By.id("input-payment-address");
 
     // ----- Step 2: Delivery details -----
-    private final By existingAddressRadio = By.cssSelector("input[name='shipping_address'][value='existing']");
+    private final By existingAddressRadio  = By.cssSelector("input[name='shipping_address'][value='existing']");
     private final By newShippingAddressRadio = By.cssSelector("input[name='shipping_address'][value='new']");
     private final By shippingAddressDropdown = By.id("input-shipping-address");
-    private final By shippingContinue = By.id("button-shipping-address");
+    private final By shippingContinue      = By.id("button-shipping-address");
 
     // ----- Step 3: Delivery method -----
-    private final By deliveryComment = By.name("comment");
-    private final By deliveryContinue = By.id("button-shipping-method");
+    private final By deliveryComment    = By.name("comment");
+    private final By deliveryContinue   = By.id("button-shipping-method");
 
     // ----- Step 4: Payment method -----
     private final By agreeTermsCheckbox = By.name("agree");
-    private final By paymentContinue = By.id("button-payment-method");
-    private final By termsWarningAlert = By.cssSelector("div.alert.alert-danger, div.alert.alert-warning");
+    private final By paymentContinue    = By.id("button-payment-method");
+    private final By termsWarningAlert  = By.cssSelector("div.alert.alert-danger, div.alert.alert-warning");
 
     // ----- Step 5: Confirm -----
-    private final By confirmTotal = By.xpath("//table[@id='checkout-cart']//tr[td[contains(.,'Total')]]/td[2]");
+    private final By confirmTotal       = By.xpath("//table[@id='checkout-cart']//tr[td[contains(.,'Total')]]/td[2]");
     private final By confirmFlatShipping = By.xpath("//table[@id='checkout-cart']//tr[td[contains(normalize-space(),'Flat Shipping')]]/td[last()]");
-    private final By confirmOrderTable = By.id("checkout-cart");
-    private final By confirmButton = By.id("button-confirm");
+    private final By confirmOrderTable  = By.id("checkout-cart");
+    private final By confirmButton      = By.id("button-confirm");
 
     public CheckoutPage(WebDriver driver) {
         super(driver);
     }
 
+    // ---- Step 1 ----
+
     public void selectNewBillingAddress() {
         if (isPresent(newAddressRadio)) {
             click(newAddressRadio);
         }
-        // Wait for the form to slide into view (accordion animation)
         waitVisible(bFirstName);
     }
 
@@ -65,32 +62,39 @@ public class CheckoutPage extends BasePage {
             String country, String region) {
         type(bFirstName, fn);
         type(bLastName, ln);
-        if (!company.isEmpty())
-            type(bCompany, company);
+        if (!company.isEmpty()) type(bCompany, company);
         type(bAddress1, addr1);
         type(bCity, city);
         type(bPostcode, postcode);
         selectByVisibleText(bCountry, country);
-        // small wait for the regions dropdown to populate
-        try {
-            Thread.sleep(700);
-        } catch (InterruptedException ignored) {
-        }
+        waitForRegionOptions();
         selectByVisibleText(bRegion, region);
     }
 
-    public void clickBillingContinue() {
-        click(billingContinue);
+    private void waitForRegionOptions() {
+        wait.until(driver -> {
+            List<WebElement> options = driver.findElements(
+                    By.cssSelector("#input-payment-zone option[value!='']"));
+            return !options.isEmpty();
+        });
     }
 
-    /** Returns the selected billing address option text (non-empty only when dropdown is shown). */
+    public void clickBillingContinue() {
+        scrollIntoView(billingContinue);
+        click(billingContinue);
+        // Wait for the shipping section accordion to open
+        waitVisible(shippingContinue);
+    }
+
     public String getSelectedBillingAddressText() {
         if (isPresent(billingAddressDropdown)) {
-            return new org.openqa.selenium.support.ui.Select(
-                    waitVisible(billingAddressDropdown)).getFirstSelectedOption().getText().trim();
+            return new Select(waitVisible(billingAddressDropdown))
+                    .getFirstSelectedOption().getText().trim();
         }
         return "";
     }
+
+    // ---- Step 2 ----
 
     public void selectExistingShippingAddress() {
         if (isPresent(existingAddressRadio)) {
@@ -104,27 +108,33 @@ public class CheckoutPage extends BasePage {
         }
     }
 
-    /** Returns the selected shipping address option text (non-empty only when dropdown is shown). */
     public String getSelectedShippingAddressText() {
         if (isPresent(shippingAddressDropdown)) {
-            return new org.openqa.selenium.support.ui.Select(
-                    waitVisible(shippingAddressDropdown)).getFirstSelectedOption().getText().trim();
+            return new Select(waitVisible(shippingAddressDropdown))
+                    .getFirstSelectedOption().getText().trim();
         }
         return "";
     }
 
     public void clickShippingContinue() {
         click(shippingContinue);
+        // Wait for the delivery-method section to open
+        waitVisible(deliveryContinue);
     }
 
+    // ---- Step 3 ----
+
     public void enterDeliveryComment(String comment) {
-        if (!comment.isEmpty())
-            type(deliveryComment, comment);
+        if (!comment.isEmpty()) type(deliveryComment, comment);
     }
 
     public void clickDeliveryContinue() {
         click(deliveryContinue);
+        // Wait for the payment-method section to open
+        waitVisible(paymentContinue);
     }
+
+    // ---- Step 4 ----
 
     public void agreeToTerms() {
         click(agreeTermsCheckbox);
@@ -132,25 +142,29 @@ public class CheckoutPage extends BasePage {
 
     public void clickPaymentContinue() {
         click(paymentContinue);
+        // Wait for either the T&C warning or the confirm-order table
+        wait.until(ExpectedConditions.or(
+                ExpectedConditions.visibilityOfElementLocated(termsWarningAlert),
+                ExpectedConditions.presenceOfElementLocated(confirmOrderTable)
+        ));
     }
 
-    /** Returns the T&C warning/danger alert text, or empty string if none shown. */
     public String getTermsWarningText() {
         if (isPresent(termsWarningAlert)) return getText(termsWarningAlert);
         return "";
     }
 
+    // ---- Step 5 ----
+
     public String getConfirmTotal() {
         return getText(confirmTotal);
     }
 
-    /** Returns the Flat Shipping Rate amount from the confirm table, or empty string. */
     public String getConfirmFlatShipping() {
         if (isPresent(confirmFlatShipping)) return getText(confirmFlatShipping);
         return "";
     }
 
-    /** True when the confirm-order summary table is present on the page. */
     public boolean isConfirmOrderSectionVisible() {
         return isPresent(confirmOrderTable);
     }

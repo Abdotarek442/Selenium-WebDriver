@@ -8,3 +8,4 @@ allure-report/
 .settings/
 .vscode/
 *.log
+.claude/
