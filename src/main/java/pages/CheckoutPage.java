@@ -12,27 +12,27 @@ import java.util.List;
 public class CheckoutPage extends BasePage {
 
     // ----- Step 1: Billing details -----
-    private final By newAddressRadio     = By.cssSelector("input[name='payment_address'][value='new']");
-    private final By bFirstName          = By.id("input-payment-firstname");
-    private final By bLastName           = By.id("input-payment-lastname");
-    private final By bCompany            = By.id("input-payment-company");
-    private final By bAddress1           = By.id("input-payment-address-1");
-    private final By bCity               = By.id("input-payment-city");
-    private final By bPostcode           = By.id("input-payment-postcode");
-    private final By bCountry            = By.id("input-payment-country");
-    private final By bRegion             = By.id("input-payment-zone");
-    private final By billingContinue     = By.id("button-payment-address");
+    private final By newAddressRadio        = By.cssSelector("input[name='payment_address'][value='new']");
+    private final By bFirstName             = By.id("input-payment-firstname");
+    private final By bLastName              = By.id("input-payment-lastname");
+    private final By bCompany               = By.id("input-payment-company");
+    private final By bAddress1              = By.id("input-payment-address-1");
+    private final By bCity                  = By.id("input-payment-city");
+    private final By bPostcode              = By.id("input-payment-postcode");
+    private final By bCountry               = By.id("input-payment-country");
+    private final By bRegion                = By.id("input-payment-zone");
+    private final By billingContinue        = By.id("button-payment-address");
     private final By billingAddressDropdown = By.id("input-payment-address");
 
     // ----- Step 2: Delivery details -----
-    private final By existingAddressRadio   = By.cssSelector("input[name='shipping_address'][value='existing']");
+    private final By existingAddressRadio    = By.cssSelector("input[name='shipping_address'][value='existing']");
     private final By newShippingAddressRadio = By.cssSelector("input[name='shipping_address'][value='new']");
     private final By shippingAddressDropdown = By.id("input-shipping-address");
-    private final By shippingContinue       = By.id("button-shipping-address");
+    private final By shippingContinue        = By.id("button-shipping-address");
 
     // ----- Step 3: Delivery method -----
-    private final By deliveryComment   = By.name("comment");
-    private final By deliveryContinue  = By.id("button-shipping-method");
+    private final By deliveryComment  = By.name("comment");
+    private final By deliveryContinue = By.id("button-shipping-method");
 
     // ----- Step 4: Payment method -----
     private final By agreeTermsCheckbox = By.name("agree");
@@ -40,16 +40,16 @@ public class CheckoutPage extends BasePage {
     private final By termsWarningAlert  = By.cssSelector("div.alert.alert-danger, div.alert.alert-warning");
 
     // ----- Step 5: Confirm -----
-    // Sub-Total = product cost only (no shipping) — matches the cart-page Total
-    private final By confirmSubTotal    = By.xpath(
-            "//table[@id='checkout-cart']//tr[td[normalize-space()='Sub-Total:']]/td[last()]");
-    // Total = Sub-Total + Flat Shipping Rate
-    private final By confirmTotal       = By.xpath(
-            "//table[@id='checkout-cart']//tr[td[normalize-space()='Total:']]/td[last()]");
-    private final By confirmFlatShipping = By.xpath(
-            "//table[@id='checkout-cart']//tr[td[contains(normalize-space(),'Flat Shipping')]]/td[last()]");
-    private final By confirmOrderTable  = By.id("checkout-cart");
-    private final By confirmButton      = By.id("button-confirm");
+    // OpenCart renders checkout-cart totals in <tfoot>.
+    // Sub-Total is the first tfoot row; Total is the last tfoot row.
+    // Flat Shipping is identified programmatically in getConfirmFlatShipping().
+    private final By confirmSubTotal   = By.cssSelector("#checkout-cart tfoot tr:first-child td:last-child");
+    private final By confirmTotal      = By.cssSelector("#checkout-cart tfoot tr:last-child td:last-child");
+    private final By confirmOrderTable = By.id("checkout-cart");
+    private final By confirmButton     = By.id("button-confirm");
+
+    // Region options that have a real value (populated after country AJAX)
+    private final By zoneOptions = By.cssSelector("#input-payment-zone option:not([value=''])");
 
     public CheckoutPage(WebDriver driver) {
         super(driver);
@@ -73,15 +73,14 @@ public class CheckoutPage extends BasePage {
         type(bCity, city);
         type(bPostcode, postcode);
         selectByVisibleText(bCountry, country);
-        wait.until(ExpectedConditions.presenceOfElementLocated(
-                By.xpath("//select[@id='input-payment-zone']/option[text()='" + region + "']")));
+        // Wait for the zone/region dropdown to be populated via AJAX
+        wait.until(ExpectedConditions.numberOfElementsToBeMoreThan(zoneOptions, 0));
         selectByVisibleText(bRegion, region);
     }
 
     public void clickBillingContinue() {
         scrollIntoView(billingContinue);
         click(billingContinue);
-        // Wait until the Delivery Details section's Continue button is clickable
         wait.until(ExpectedConditions.elementToBeClickable(shippingContinue));
     }
 
@@ -105,7 +104,7 @@ public class CheckoutPage extends BasePage {
             wait.until(ExpectedConditions.elementToBeClickable(existingAddressRadio));
             click(existingAddressRadio);
         } catch (Exception ignored) {
-            // No existing-address radio means the form is already showing — just continue
+            // No existing-address radio — new-address form already visible, just continue
         }
     }
 
@@ -129,7 +128,6 @@ public class CheckoutPage extends BasePage {
     public void clickShippingContinue() {
         scrollIntoView(shippingContinue);
         click(shippingContinue);
-        // Wait for the Delivery Method section's Continue button to appear
         waitVisible(deliveryContinue);
     }
 
@@ -178,8 +176,8 @@ public class CheckoutPage extends BasePage {
     // ---- Step 5: Confirm Order ----
 
     /**
-     * Product sub-total shown on the confirm page (no shipping).
-     * This should equal the Total shown on the cart page.
+     * Product sub-total from the confirm table (no shipping).
+     * This is the first row of the tfoot section of #checkout-cart.
      */
     public String getConfirmSubTotal() {
         if (isPresent(confirmSubTotal)) return getText(confirmSubTotal);
@@ -187,15 +185,31 @@ public class CheckoutPage extends BasePage {
     }
 
     /**
-     * Grand total on the confirm page (Sub-Total + Flat Shipping Rate).
+     * Grand total from the confirm table (Sub-Total + Flat Shipping).
+     * This is the last row of the tfoot section of #checkout-cart.
      */
     public String getConfirmTotal() {
         if (isPresent(confirmTotal)) return getText(confirmTotal);
         return "";
     }
 
+    /**
+     * Returns the flat shipping amount from the confirm table.
+     * Iterates tfoot rows and returns the last cell of whichever row's
+     * first cell contains "flat" or "shipping" (case-insensitive).
+     */
     public String getConfirmFlatShipping() {
-        if (isPresent(confirmFlatShipping)) return getText(confirmFlatShipping);
+        List<WebElement> rows = driver.findElements(
+                By.cssSelector("#checkout-cart tfoot tr"));
+        for (WebElement row : rows) {
+            List<WebElement> cells = row.findElements(By.cssSelector("td"));
+            if (cells.size() >= 2) {
+                String label = cells.get(0).getText().trim().toLowerCase();
+                if (label.contains("flat") || label.contains("shipping")) {
+                    return cells.get(cells.size() - 1).getText().trim();
+                }
+            }
+        }
         return "";
     }
 

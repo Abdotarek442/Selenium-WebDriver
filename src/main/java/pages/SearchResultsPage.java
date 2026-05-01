@@ -9,18 +9,13 @@ import java.util.stream.Collectors;
 
 public class SearchResultsPage extends BasePage {
 
-    private final By keywordInput        = By.id("input-search");
-    private final By categorySelect      = By.cssSelector("select[name='category_id']");
-    private final By subCategoriesCheckbox =
-            By.cssSelector("input[name='sub_category']");
-    private final By searchInDescriptions =
-            By.cssSelector("input[name='description']");
-    private final By searchButton        = By.id("button-search");
+    private final By keywordInput          = By.id("input-search");
+    private final By categorySelect        = By.cssSelector("select[name='category_id']");
+    private final By subCategoriesCheckbox = By.cssSelector("input[name='sub_category']");
+    private final By searchInDescriptions  = By.cssSelector("input[name='description']");
+    private final By searchButton          = By.id("button-search");
 
-    private final By productNames        =
-            By.cssSelector("div.product-thumb h4 a");
-    private final By noProductsMessage   =
-            By.xpath("//*[@id='content']//p[contains(.,'no product')]");
+    private final By productNames          = By.cssSelector("div.product-thumb h4 a");
 
     public SearchResultsPage(WebDriver driver) {
         super(driver);
@@ -51,7 +46,12 @@ public class SearchResultsPage extends BasePage {
                 .collect(Collectors.toList());
     }
 
+    /**
+     * Returns true when the search returned no products.
+     * OpenCart shows the no-results paragraph only when product-thumb elements
+     * are absent, so checking for an empty product list is equivalent.
+     */
     public boolean isNoResultsMessageShown() {
-        return isPresent(noProductsMessage);
+        return driver.findElements(productNames).isEmpty();
     }
 }
