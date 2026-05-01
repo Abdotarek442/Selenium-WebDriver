@@ -3,6 +3,7 @@ package pages;
 import org.openqa.selenium.By;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
+import org.openqa.selenium.support.ui.ExpectedConditions;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -96,6 +97,7 @@ public class CategoryPage extends BasePage {
         for (WebElement el : findAll(productNames)) {
             if (el.getText().toLowerCase().contains(fragment.toLowerCase())) {
                 el.click();
+                wait.until(ExpectedConditions.presenceOfElementLocated(By.id("button-cart")));
                 return new ProductPage(driver);
             }
         }
