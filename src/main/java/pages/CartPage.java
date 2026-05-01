@@ -211,4 +211,19 @@ public class CartPage extends BasePage {
     public boolean isCartEmpty() {
         return isPresent(emptyCartMessage);
     }
+
+    /**
+     * Removes every item from the cart.
+     * Navigates to the cart page first, then repeatedly clicks the first
+     * Remove button until none remain. Safe to call on an already-empty cart.
+     */
+    public void clearCart() {
+        goToViewCart();
+        By removeBtn = By.cssSelector("button[onclick*='cart.remove']");
+        while (!findAll(removeBtn).isEmpty()) {
+            int countBefore = findAll(removeBtn).size();
+            click(removeBtn);
+            wait.until(d -> d.findElements(removeBtn).size() < countBefore);
+        }
+    }
 }

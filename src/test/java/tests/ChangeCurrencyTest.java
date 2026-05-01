@@ -4,44 +4,54 @@ import io.qameta.allure.Description;
 import io.qameta.allure.Severity;
 import io.qameta.allure.SeverityLevel;
 import org.testng.Assert;
+import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 import pages.CategoryPage;
 import pages.LoginPage;
 import utils.ConfigReader;
+import utils.ExcelReader;
 
 import java.util.List;
 
 public class ChangeCurrencyTest extends BaseTest {
+
+    @DataProvider(name = "currencyData")
+    public Object[][] currencyData() {
+        return ExcelReader.getSheetData("CurrencyChange");
+    }
+
     // ------------------ TC05: Change currency ----------------------------
-    @Test(description = "TC05 - Change currency from $ to € on Desktops")
+    @Test(dataProvider = "currencyData",
+            description = "TC05 - Change currency on the given category page")
     @Severity(SeverityLevel.NORMAL)
-    @Description("Login → open all Desktops → switch currency to € → " +
-            "all displayed prices should start with the € symbol.")
-    public void changeCurrencyToEuro() {
+    @Description("Login → open specified category → verify default currency symbol → " +
+            "switch currency → verify all prices show the new symbol.")
+    public void changeCurrencyToEuro(String category, String fromSymbol,
+            String toCurrencyCode, String toSymbol) {
+
         loginWithDefaultUser();
 
-        CategoryPage desktops = home.openDesktopsShowAll();
+        CategoryPage categoryPage = home.openCategoryShowAll(category);
 
-        // Verify default ($) prices first
-        List<String> dollarPrices = desktops.getProductPrices();
-        Assert.assertFalse(dollarPrices.isEmpty(), "No products listed on Desktops.");
-        Assert.assertTrue(dollarPrices.get(0).contains("$"),
-                "Prices should default to $.");
+        List<String> beforePrices = categoryPage.getProductPrices();
+        Assert.assertFalse(beforePrices.isEmpty(),
+                "No products listed on " + category + ".");
+        Assert.assertTrue(beforePrices.get(0).contains(fromSymbol),
+                "Prices should default to '" + fromSymbol + "'.");
 
-        // Switch to Euro
-        home.changeCurrencyToEuro();
-        // Page reloads after currency switch — create a fresh CategoryPage to avoid stale references
-        CategoryPage desktopsAfterSwitch = new CategoryPage(driver);
-        List<String> euroPrices = desktopsAfterSwitch.getProductPrices();
-        Assert.assertTrue(euroPrices.stream().allMatch(p -> p.contains("€")),
-                "All prices should be in € after switching currency.");
+        home.changeCurrency(toCurrencyCode);
+
+        // Re-wrap CategoryPage after page reload triggered by currency switch
+        CategoryPage afterSwitch = new CategoryPage(driver);
+        List<String> afterPrices = afterSwitch.getProductPrices();
+        Assert.assertTrue(afterPrices.stream().allMatch(p -> p.contains(toSymbol)),
+                "All prices should show '" + toSymbol + "' after switching currency.");
 
         home.logout();
     }
 
     private void loginWithDefaultUser() {
         LoginPage login = home.goToLogin();
-        login.login(ConfigReader.get("valid.email"),
-                ConfigReader.get("valid.password"));
+        login.login(ConfigReader.get("valid.email"), ConfigReader.get("valid.password"));
     }
 }
