@@ -5,8 +5,10 @@ import org.openqa.selenium.WebDriver;
 
 public class AccountPage extends BasePage {
 
-    private final By accountHeading = By.xpath("//h2[normalize-space()='My Account']");
-    private final By myAccountSidebar = By.xpath("//aside[@id='column-right']//a[normalize-space()='My Account']");
+    // h2 heading rendered on the My Account dashboard page
+    private final By accountHeading   = By.cssSelector("#content h2");
+    // "My Account" link in the right-hand sidebar navigation
+    private final By myAccountSidebar = By.cssSelector("#column-right a[href*='account/account']");
 
     public AccountPage(WebDriver driver) {
         super(driver);
