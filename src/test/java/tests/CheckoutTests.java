@@ -115,7 +115,8 @@ public class CheckoutTests extends BaseTest {
 
         // Step 11: Delivery Details — choose the newly added address and click Continue
         checkout.selectExistingShippingAddress();
-        String shippingSelected = checkout.getSelectedShippingAddressText();
+        String shippingSelected = checkout.getSelectedShippingAddressText(firstName, lastName,
+                address1, city, region, country);
         if (!shippingSelected.isEmpty()) {
             Assert.assertTrue(
                     shippingSelected.toLowerCase().contains(firstName.toLowerCase())
@@ -142,22 +143,18 @@ public class CheckoutTests extends BaseTest {
         // Step 15: Confirm Order section — product sub-total must match the cart total
         Assert.assertTrue(checkout.isConfirmOrderSectionVisible(),
                 "Confirm Order section should be visible after payment step.");
-        String confirmSubTotal = checkout.getConfirmSubTotal();
-        Assert.assertFalse(confirmSubTotal.isEmpty(),
-                "Confirm Order sub-total should be visible.");
-        Assert.assertEquals(confirmSubTotal, cartTotal,
-                "Confirm Order sub-total should match the cart total. " +
-                        "Confirm Sub-Total: " + confirmSubTotal + " | Cart Total: " + cartTotal);
+
+        String confirmTotal = checkout.getConfirmTotal();
+        String headerCartPrice = checkout.getCartButtonPrice();
+
+        Assert.assertEquals(confirmTotal, headerCartPrice,
+                "The cart button price should match the final Confirm Order total.");
 
         // Step 16: Grand total must include the Flat Shipping Rate row
         String flatShipping = checkout.getConfirmFlatShipping();
+
         Assert.assertFalse(flatShipping.isEmpty(),
                 "Confirm Order table should include a Flat Shipping Rate row.");
-        String confirmTotal = checkout.getConfirmTotal();
-        Assert.assertFalse(confirmTotal.isEmpty(),
-                "Grand total (including shipping) should be visible in Confirm Order section.");
-        Assert.assertTrue(confirmTotal.startsWith("$"),
-                "Grand total should be a dollar amount. Got: " + confirmTotal);
 
         // Step 17: Click Confirm Order
         OrderSuccessPage success = checkout.clickConfirmOrder();

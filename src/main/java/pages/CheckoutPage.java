@@ -26,8 +26,7 @@ public class CheckoutPage extends BasePage {
 
     // ----- Step 2: Delivery details -----
     private final By existingAddressRadio    = By.cssSelector("input[name='shipping_address'][value='existing']");
-    private final By newShippingAddressRadio = By.cssSelector("input[name='shipping_address'][value='new']");
-    private final By shippingAddressDropdown = By.id("input-shipping-address");
+    private final By shippingAddressDropdown = By.cssSelector("select[name='address_id']");
     private final By shippingContinue        = By.id("button-shipping-address");
 
     // ----- Step 3: Delivery method -----
@@ -40,12 +39,10 @@ public class CheckoutPage extends BasePage {
     private final By termsWarningAlert  = By.cssSelector("div.alert.alert-danger, div.alert.alert-warning");
 
     // ----- Step 5: Confirm -----
-    // OpenCart renders checkout-cart totals in <tfoot>.
-    // Sub-Total is the first tfoot row; Total is the last tfoot row.
-    // Flat Shipping is identified programmatically in getConfirmFlatShipping().
-    private final By confirmSubTotal   = By.cssSelector("#checkout-cart tfoot tr:first-child td:last-child");
-    private final By confirmTotal      = By.cssSelector("#checkout-cart tfoot tr:last-child td:last-child");
-    private final By confirmOrderTable = By.id("checkout-cart");
+    private final By cartTotalButton = By.id("cart-total");
+    private final By confirmSubTotal = By.cssSelector("#collapse-checkout-confirm .table-bordered tfoot tr:first-child td:last-child");
+    private final By confirmTotal    = By.cssSelector("#collapse-checkout-confirm .table-bordered tfoot tr:last-child td:last-child");
+    private final By confirmOrderTable = By.id("collapse-checkout-confirm");
     private final By confirmButton     = By.id("button-confirm");
 
     // Region options that have a real value (populated after country AJAX)
@@ -58,8 +55,10 @@ public class CheckoutPage extends BasePage {
     // ---- Step 1 ----
 
     public void selectNewBillingAddress() {
-        wait.until(ExpectedConditions.visibilityOfElementLocated(newAddressRadio));
-        click(newAddressRadio);
+        if (isPresent(newAddressRadio)) {
+            wait.until(ExpectedConditions.elementToBeClickable(newAddressRadio));
+            click(newAddressRadio);
+        }
         wait.until(ExpectedConditions.visibilityOfElementLocated(bFirstName));
     }
 
@@ -73,7 +72,7 @@ public class CheckoutPage extends BasePage {
         type(bCity, city);
         type(bPostcode, postcode);
         selectByVisibleText(bCountry, country);
-        // Wait for the zone/region dropdown to be populated via AJAX
+
         wait.until(ExpectedConditions.numberOfElementsToBeMoreThan(zoneOptions, 0));
         selectByVisibleText(bRegion, region);
     }
@@ -100,27 +99,30 @@ public class CheckoutPage extends BasePage {
      * Falls back silently if the site shows only a new-address form.
      */
     public void selectExistingShippingAddress() {
-        try {
-            wait.until(ExpectedConditions.elementToBeClickable(existingAddressRadio));
-            click(existingAddressRadio);
-        } catch (Exception ignored) {
-            // No existing-address radio — new-address form already visible, just continue
-        }
+        wait.until(ExpectedConditions.elementToBeClickable(existingAddressRadio));
+        click(existingAddressRadio);
     }
 
-    public void selectNewShippingAddress() {
-        try {
-            wait.until(ExpectedConditions.elementToBeClickable(newShippingAddressRadio));
-            click(newShippingAddressRadio);
-        } catch (Exception ignored) {
-            // Already showing the new-address form
-        }
-    }
+    public String getSelectedShippingAddressText(String fn, String ln, String addr1,
+                                                 String city, String region, String country) {
+        String expectedAddress = String.format("%s%s,%s,%s,%s,%s", fn, ln, addr1, city, region, country);
 
-    public String getSelectedShippingAddressText() {
-        if (isPresent(shippingAddressDropdown)) {
-            return new Select(waitVisible(shippingAddressDropdown))
-                    .getFirstSelectedOption().getText().trim();
+        wait.until(d -> {
+            List<WebElement> dropdowns = d.findElements(shippingAddressDropdown);
+            return dropdowns.size() >= 2 && dropdowns.get(1).isEnabled() && dropdowns.get(1).isDisplayed();
+        });
+
+        List<WebElement> dropdowns = driver.findElements(shippingAddressDropdown);
+        WebElement dropdown = dropdowns.get(1);
+
+        Select select = new Select(dropdown);
+
+        for (WebElement option : select.getOptions()) {
+            String text = option.getText().trim();
+            if (text.equalsIgnoreCase(expectedAddress)) {
+                select.selectByVisibleText(text);
+                return text;
+            }
         }
         return "";
     }
@@ -176,31 +178,36 @@ public class CheckoutPage extends BasePage {
     // ---- Step 5: Confirm Order ----
 
     /**
-     * Product sub-total from the confirm table (no shipping).
-     * This is the first row of the tfoot section of #checkout-cart.
+     * Matches Step 15: Returns the price from the black header button.
+     * Example: "1 item(s) - $105.00" -> returns "$105.00"
      */
+    public String getCartButtonPrice() {
+        String cartButtonPrice = getText(cartTotalButton);
+        if (cartButtonPrice.contains("-")) {
+            return cartButtonPrice.split("-")[1].trim();
+        }
+        return cartButtonPrice;
+    }
+
     public String getConfirmSubTotal() {
-        if (isPresent(confirmSubTotal)) return getText(confirmSubTotal);
+        if (isPresent(confirmSubTotal)) return getText(confirmSubTotal).trim();
         return "";
     }
 
     /**
-     * Grand total from the confirm table (Sub-Total + Flat Shipping).
-     * This is the last row of the tfoot section of #checkout-cart.
+     * Matches Step 15: Captures the final total for test assertions.
      */
     public String getConfirmTotal() {
-        if (isPresent(confirmTotal)) return getText(confirmTotal);
+        if (isPresent(confirmTotal)) return getText(confirmTotal).trim();
         return "";
     }
 
     /**
-     * Returns the flat shipping amount from the confirm table.
-     * Iterates tfoot rows and returns the last cell of whichever row's
-     * first cell contains "flat" or "shipping" (case-insensitive).
+     * Matches Step 16: Verifies the Flat Shipping row exists and returns its value.
      */
     public String getConfirmFlatShipping() {
         List<WebElement> rows = driver.findElements(
-                By.cssSelector("#checkout-cart tfoot tr"));
+                By.cssSelector("#collapse-checkout-confirm .table-bordered tfoot tr"));
         for (WebElement row : rows) {
             List<WebElement> cells = row.findElements(By.cssSelector("td"));
             if (cells.size() >= 2) {
