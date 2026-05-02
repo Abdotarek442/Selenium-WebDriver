@@ -10,9 +10,11 @@ public class OrderSuccessPage extends BasePage {
 
     public OrderSuccessPage(WebDriver driver) {
         super(driver);
+        wait.until(org.openqa.selenium.support.ui.ExpectedConditions.urlContains("checkout/success"));
     }
 
     public String getHeading() {
+        wait.until(org.openqa.selenium.support.ui.ExpectedConditions.textToBePresentInElementLocated(heading, "placed"));
         return getText(heading);
     }
 

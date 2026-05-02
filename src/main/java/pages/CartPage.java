@@ -152,11 +152,44 @@ public class CartPage extends BasePage {
     }
 
     /**
+     * Checks if there's a stock warning alert on the cart page.
+     */
+    public boolean hasStockWarning() {
+        By warning = By.cssSelector(".alert-danger");
+        if (isPresent(warning)) {
+            return getText(warning).contains("***");
+        }
+        return false;
+    }
+
+    /**
      * Grand-total string shown on the cart page, e.g. "$363.99".
      * OpenCart renders two tables inside #content: the product table (has thead)
      * and the totals table (no thead). We iterate to find the totals table, then
      * return the last cell of its last row ("Total:").
      */
+    /**
+     * Sub-Total string shown on the cart page, e.g. "$100.00".
+     * Fetched from the first row of the totals table.
+     */
+    public String getCartSubTotal() {
+        List<WebElement> tables = driver.findElements(
+                By.cssSelector("#content table.table-bordered"));
+        for (WebElement table : tables) {
+            if (table.findElements(By.cssSelector("thead")).isEmpty()) {
+                List<WebElement> rows = table.findElements(By.cssSelector("tbody tr"));
+                if (!rows.isEmpty()) {
+                    WebElement firstRow = rows.get(0);
+                    List<WebElement> cells = firstRow.findElements(By.cssSelector("td"));
+                    if (!cells.isEmpty()) {
+                        return cells.get(cells.size() - 1).getText().trim();
+                    }
+                }
+            }
+        }
+        return "";
+    }
+
     public String getCartTotal() {
         List<WebElement> tables = driver.findElements(
                 By.cssSelector("#content table.table-bordered"));
@@ -194,5 +227,7 @@ public class CartPage extends BasePage {
             wait.until(d -> d.findElements(removeBtn).size() < countBefore);
             buttons = driver.findElements(removeBtn);
         }
+        wait.until(ExpectedConditions.textToBe(By.cssSelector("#cart button span"), "0 item(s) - $0.00"));
     }
+
 }

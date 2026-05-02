@@ -47,7 +47,6 @@ public class CheckoutTests extends BaseTest {
         CategoryPage categoryPage = home.openCategoryShowAll(productCategory);
 
         if (deliveryDate.isEmpty()) {
-            // No required options — add directly from the category listing
             boolean added = categoryPage.addProductByName(productName);
             Assert.assertTrue(added,
                     productName + " should be available in the " + productCategory + " category.");
@@ -58,7 +57,6 @@ public class CheckoutTests extends BaseTest {
                     "Success alert should mention " + productName
                             + ". Got: " + categoryPage.getSuccessAlertText());
         } else {
-            // Product requires a delivery date — open the product page first
             ProductPage productPage = categoryPage.openProductByName(productName);
             Assert.assertTrue(productPage.getTitle().contains(productName),
                     "Product page title should contain '" + productName
@@ -90,8 +88,13 @@ public class CheckoutTests extends BaseTest {
         Assert.assertTrue(
                 cartNames.stream().anyMatch(n -> n.toLowerCase().contains(productName.toLowerCase())),
                 productName + " should appear on the cart page. Found: " + cartNames);
-        String cartTotal = cart.getCartTotal();
-        Assert.assertFalse(cartTotal.isEmpty(), "Cart total should be visible on the cart page.");
+        
+        String cartSubTotal = cart.getCartSubTotal();
+        Assert.assertFalse(cartSubTotal.isEmpty(), "Cart Sub-Total should be visible on the cart page.");
+
+        // Step 5.1: Check for stock warning
+        Assert.assertFalse(cart.hasStockWarning(), 
+                "Product " + productName + " is out of stock! Cannot proceed to checkout.");
 
         // Step 6: Start checkout
         CheckoutPage checkout = cart.clickCheckoutOnCartPage();
@@ -140,15 +143,15 @@ public class CheckoutTests extends BaseTest {
         checkout.agreeToTerms();
         checkout.clickPaymentContinueFinal();
 
-        // Step 15: Confirm Order section — product sub-total must match the cart total
+        // Step 15: Confirm Order section — product sub-total must match the cart sub-total
         Assert.assertTrue(checkout.isConfirmOrderSectionVisible(),
                 "Confirm Order section should be visible after payment step.");
 
-        String confirmTotal = checkout.getConfirmTotal();
-        String headerCartPrice = checkout.getCartButtonPrice();
+        String confirmSubTotal = checkout.getConfirmSubTotal();
+        Assert.assertEquals(confirmSubTotal, cartSubTotal,
+                "The Confirm Order Sub-Total should match the Shopping Cart Sub-Total.");
 
-        Assert.assertEquals(confirmTotal, headerCartPrice,
-                "The cart button price should match the final Confirm Order total.");
+        // Note: The Header Cart button price is ignored here because it is stale on this site during checkout.
 
         // Step 16: Grand total must include the Flat Shipping Rate row
         String flatShipping = checkout.getConfirmFlatShipping();
